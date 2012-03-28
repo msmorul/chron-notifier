@@ -32,7 +32,7 @@
                         </div>
                         <div class="clear"></div>
                         
-                        <div class="grid_9 prefix_1 ticket_comments">${item.statusMessage}</div>
+                        <div class="grid_9 push_1 ticket_comments"><pre>${item.statusMessage}</pre></div>
                         <div class="clear"></div>
                         
                         <c:if test="${item.status == 0}">

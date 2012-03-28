@@ -38,3 +38,8 @@
     padding-bottom: 15px;
     border: grey dashed 1px;
 }
+
+.ticket_comments {
+    height: 150px;
+    overflow: scroll;
+}

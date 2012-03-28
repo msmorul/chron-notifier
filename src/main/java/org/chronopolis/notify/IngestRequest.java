@@ -149,15 +149,15 @@ public class IngestRequest {
             return;
         }
 
-        if (manifest.containsKey(parts[0])) {
-            String error = "Duplicate manifest key: " + parts[0]
-                    + " existing digest " + manifest.get(parts[0]) + " new " + parts[1] + " not replacing";
+        if (manifest.containsKey(parts[1])) {
+            String error = "Duplicate manifest key: " + parts[1]
+                    + " existing digest " + manifest.get(parts[1]) + " new " + parts[0] + " not replacing";
 
             errors.add(line);
             LOG.info(error);
             return;
         }
 
-        manifest.put(parts[0], parts[1]);
+        manifest.put(parts[1], parts[0]);
     }
 }

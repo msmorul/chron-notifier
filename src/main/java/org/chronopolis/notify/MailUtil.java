@@ -77,7 +77,7 @@ public class MailUtil implements ServletContextListener {
         StringBuilder sb = new StringBuilder();
         sb.append("Ticket: ");
         sb.append(t.getIdentifier());
-        sb.append("\r\nRequest Type: ");
+        sb.append("\nRequest Type: ");
         switch (t.getRequestType()) {
             case Ticket.REQUEST_FULL_RESTORE:
                 sb.append("Full Restore");
@@ -93,19 +93,21 @@ public class MailUtil implements ServletContextListener {
                 sb.append(t.getRequestType());
         }
         
-        sb.append("\n\rSpace: ");
+        sb.append("\n\nSpace: ");
         sb.append(t.getSpaceId());
-        sb.append("\n\rAccount: ");
+        sb.append("\nAccount: ");
         sb.append(t.getAccountId());
-        sb.append("\n\rItem");
+        sb.append("\nItem: ");
         sb.append(t.getItemId());
         if (t.getStatus() == Ticket.STATUS_ERROR) {
-            sb.append("\r\nErrors: \r\n");
+            sb.append("\n\nErrors: \n");
             sb.append(t.getStatusMessage());
         }
         if (t.getRequestType() == Ticket.REQUEST_INGEST) {
+            sb.append("\n\n-----------------\nTransfer Manifest\n\n");
+            
             for (Map.Entry<String, String> entry : ir.getManifest().entrySet()) {
-                sb.append(entry.getKey()).append(": ").append(entry.getValue()).append("\r\n");
+                sb.append(entry.getValue()).append(": ").append(entry.getKey()).append("\r\n");
             }
         }
         return sb.toString();

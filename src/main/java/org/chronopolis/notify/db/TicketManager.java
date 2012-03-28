@@ -167,10 +167,9 @@ public class TicketManager {
     }
 
     private String createErrorList(IngestRequest ir) {
-        StringBuilder sb = new StringBuilder("The folling manifest errors were detected \r\n");
+        StringBuilder sb = new StringBuilder("The folling manifest errors were detected \n");
         for (String s : ir.getErrors()) {
-            sb.append(s);
-            sb.append("\n\r");
+            sb.append(s).append("\n");
         }
         return sb.toString();
     }
