@@ -1,0 +1,40 @@
+/* 
+    Document   : style
+    Created on : Mar 22, 2012, 6:34:30 PM
+    Author     : toaster
+    Description:
+        Purpose of the stylesheet follows.
+*/
+
+/* 
+   TODO customize this sample style
+   Syntax recommendation http://www.w3.org/TR/REC-CSS2/
+*/
+
+.title { 
+   
+    padding: 15px;
+}
+.title h1 {
+    font-family: sans-serif;
+    font-size: xx-large;
+    color: darkgrey;
+}
+
+.ticket_block {
+    padding: 15px;
+    border-bottom: black solid 1px;
+}
+
+.ticket_status_form_block {
+    padding-top: 15px;
+}
+.submit_form_link {
+    padding-top: 15px;
+}
+
+.ticket_form_block {
+    padding-top: 15px;
+    padding-bottom: 15px;
+    border: grey dashed 1px;
+}
