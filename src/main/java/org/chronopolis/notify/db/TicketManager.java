@@ -113,6 +113,7 @@ public class TicketManager {
                 ticket.setRequestType(Ticket.REQUEST_FULL_RESTORE);
 
             } else {
+                ticket.setItemId(item);
                 ticket.setRequestType(Ticket.REQUEST_SINGLE_ITEM);
             }
 
