@@ -5,6 +5,7 @@
 package org.chronopolis.notify.db;
 
 import java.util.List;
+import java.util.Map;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.NoResultException;
@@ -135,7 +136,7 @@ public class TicketManager {
      * @param ir transfer request
      * @return new ticket
      */
-    public Ticket createTicket(IngestRequest ir) {
+    public Ticket createTicket(IngestRequest ir,String sourceDigest, String targetDigest) {
         EntityManager em = emf.createEntityManager();
 
         try {
@@ -147,11 +148,17 @@ public class TicketManager {
             ticket.setRequestType(Ticket.REQUEST_INGEST);
 
 //            ticket.setManifestValues(ir.getManifest());
-            if (ir.hasErrors()) {
+            if (sourceDigest == null || sourceDigest.equals(targetDigest))
+            {
+                ticket.setStatus(Ticket.STATUS_ERROR);
+                ticket.setStatusMessage("Digest empty or does not match. Header digest: " + sourceDigest + " Computed: " + targetDigest);
+            }
+            else if (ir.hasErrors()) {
                 ticket.setStatus(Ticket.STATUS_ERROR);
                 ticket.setStatusMessage(createErrorList(ir));
             } else {
                 ticket.setStatusMessage("Processing request sent");
+                ticket.setManifest(manifestToString(ir));
                 ticket.setStatus(Ticket.STATUS_OPEN);
             }
 
@@ -174,6 +181,14 @@ public class TicketManager {
         return sb.toString();
     }
 
+    private String manifestToString(IngestRequest ir) {
+        StringBuilder sb = new StringBuilder();
+        for (Map.Entry<String, String> entry : ir.getManifest().entrySet()) {
+                sb.append(entry.getValue()).append(" ").append(entry.getKey()).append("\n");
+            }
+        return sb.toString();
+    }
+    
     private boolean setTicketStatus(String ticketId, String description, int state) {
         EntityManager em = emf.createEntityManager();
 

@@ -46,15 +46,16 @@ public class StatusResource {
      *      200/OK for open tickets
      *      201/CREATED for successfully finished tickets
      *      500/INTERNAL ERROR for requests that errored out
+     *      404/NOT_FOUND
      * 
      * @param ticket
      * @param response
-     * @return 
+     * @return ticket object
      */
     @GET
     @Path("{ticket}")
-    @Produces("text/plain")
-    public String getStatus(@PathParam("ticket") String ticketId,
+    @Produces("application/json")
+    public Ticket getStatus(@PathParam("ticket") String ticketId,
             @Context HttpServletResponse response) {
         try {
 
@@ -74,11 +75,11 @@ public class StatusResource {
                     case Ticket.STATUS_ERROR:
                         response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                 }
-                return ticket.getStatusMessage();
+                return ticket;
 
             } else {
-                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                return "";
+                response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                return null;
             }
 
         } finally {
@@ -89,6 +90,8 @@ public class StatusResource {
 
     /**
      * Update the running state of a ticket
+     * 
+     * // TODO: add manifest ingest as form/multipart
      * 
      * @param ticket
      * @param isError

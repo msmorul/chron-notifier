@@ -31,6 +31,7 @@ import org.chronopolis.notify.db.TicketManager;
 @Path("notify")
 public final class NotifyResource {
 
+    public static final String MD5_HEADER = "Content-MD5";
     private TicketManager tm = new TicketManager();
     private static final Logger LOG = Logger.getLogger(NotifyResource.class);
 
@@ -38,7 +39,7 @@ public final class NotifyResource {
     }
 
     /**
-     * Request retrieval of a complete Bag
+     * Request retrieval of a complete Bag, response code is set to ACCEPTED
      * 
      * @param accountId
      * @param spaceId
@@ -47,10 +48,10 @@ public final class NotifyResource {
      **/
     @GET
     @Path("{accountId}/{spaceId}")
-    @Produces("text/plain")
-    public String requestBag(@PathParam("accountId") String accountId,
+    @Produces("application/json")
+    public TicketHolder requestBag(@PathParam("accountId") String accountId,
             @PathParam("spaceId") String spaceId,
-            @Context HttpServletRequest request) {
+            @Context HttpServletRequest request, @Context HttpServletResponse response) {
         try {
 
             NDC.push("S" + accountId);
@@ -60,8 +61,9 @@ public final class NotifyResource {
             Ticket ticket = tm.createTicket(accountId, spaceId, null);
             MailUtil.sendMessage(ticket, null);
 
+            response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
-            return ticket.getIdentifier();
+            return new TicketHolder(ticket);
         } finally {
             LOG.info("Completed request to retrieve item ID: " + spaceId + " Account: " + accountId);
             NDC.pop();
@@ -76,15 +78,15 @@ public final class NotifyResource {
      * @param spaceId
      * @param contentId
      * @param request
-     * @return ticket
+     * @return ticket id
      */
     @GET
     @Path("{accountId}/{spaceId}/{contentId}")
-    @Produces("text/plain")
-    public String requestBag(@PathParam("accountId") String accountId,
+    @Produces("application/json")
+    public TicketHolder requestBag(@PathParam("accountId") String accountId,
             @PathParam("spaceId") String spaceId,
             @PathParam("contentId") String contentId,
-            @Context HttpServletRequest request) {
+            @Context HttpServletRequest request, @Context HttpServletResponse response) {
 
         try {
 
@@ -93,7 +95,8 @@ public final class NotifyResource {
 
             Ticket ticket = tm.createTicket(accountId, spaceId, contentId);
             MailUtil.sendMessage(ticket, null);
-            return ticket.getIdentifier();
+            response.setStatus(HttpServletResponse.SC_ACCEPTED);
+            return new TicketHolder(ticket);
         } finally {
             LOG.info("Completed request to retrieve item ID: " + spaceId + "/" + contentId + " Account: " + accountId);
             NDC.pop();
@@ -105,7 +108,7 @@ public final class NotifyResource {
     /**
      * Notify Chronopolis a manifest is available for transfer
      *  response status set as follows:
-     *      SC_BAD_REQUEST malformed manifest
+     *      SC_BAD_REQUEST malformed manifest or mismatched md5 sum
      *      SC_ACCEPTED got, parsed, and e-mailed response
      * 
      * @param accountId
@@ -115,25 +118,31 @@ public final class NotifyResource {
     @PUT
     @Path("{accountId}/{spaceId}")
     @Consumes("text/plain")
-    @Produces("text/plain")
-    public String putManifest(@PathParam("accountId") String accountId,
+    @Produces("application/json")
+    public TicketHolder putManifest(@PathParam("accountId") String accountId,
             @PathParam("spaceId") String spaceId, @Context HttpHeaders headers,
             @Context HttpServletRequest request, @Context HttpServletResponse response) {
         try {
 
             NDC.push("R" + accountId);
             LOG.info("Request to receive space. ID: " + spaceId + " Account: " + accountId);
-            // String digest = headers.getRequestHeader("Content-MD5") TODO extract http headers
+             String digest = extractMd5Header(headers);
+             LOG.debug("Manifest Digest: " + digest);
             InputStream is = request.getInputStream();
             IngestRequest ir = new IngestRequest(accountId, spaceId);
             MessageDigest md = MessageDigest.getInstance("MD5");
-            ir.readStream(is, md);
+            String computedDigest = ir.readStream(is, md);
 
-            Ticket ticket = tm.createTicket(ir);
+            if (digest != null )
+            {
+                LOG.info("Digest match: " + (digest.equals(computedDigest)));
+            }
+            
+            Ticket ticket = tm.createTicket(ir,digest,computedDigest);
             MailUtil.sendMessage(ticket, ir);
 
 
-            if (ir.hasErrors()) {
+            if (ir.hasErrors() || digest == null || !digest.equals(computedDigest)) {
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             } else {
                 response.setStatus(HttpServletResponse.SC_ACCEPTED);
@@ -141,12 +150,12 @@ public final class NotifyResource {
 
             //TODO: update response to reasonable value
             response.setHeader("Retry-After", "120");
-            return ticket.getIdentifier();
+            return new TicketHolder(ticket);
 
         } catch (IOException e) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             LOG.error("Error reading client supplied manifest stream ", e);
-            return "";
+            return null;
         } catch (NoSuchAlgorithmException e) {
             // should never happen
             LOG.error(e);
@@ -158,5 +167,14 @@ public final class NotifyResource {
 
         }
 
+    }
+    
+    private String extractMd5Header(HttpHeaders headers) {
+        
+        if ((headers.getRequestHeader(MD5_HEADER) == null) || (headers.getRequestHeader(MD5_HEADER).size() != 1))
+        {
+            return null;
+        }
+        return headers.getRequestHeader(MD5_HEADER).get(0);
     }
 }

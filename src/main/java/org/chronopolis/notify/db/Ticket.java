@@ -57,20 +57,24 @@ public class Ticket implements Serializable {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
-    
     private String identifier;
-    
-   
     private int status;
-     @Lob
+    @Lob
+    private String manifest;
+    @Lob
     private String statusMessage;
-    
-    
     private String spaceId;
     private String accountId;
     private String itemId;
     private int requestType;
 
+    public String getManifest() {
+        return manifest;
+    }
+
+    public void setManifest(String manifest) {
+        this.manifest = manifest;
+    }
 
     public String getAccountId() {
         return accountId;
