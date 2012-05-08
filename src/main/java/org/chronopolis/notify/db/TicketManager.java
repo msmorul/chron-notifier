@@ -149,7 +149,7 @@ public class TicketManager {
             ticket.setRequestType(Ticket.REQUEST_INGEST);
 
 //            ticket.setManifestValues(ir.getManifest());
-            if (sourceDigest == null || sourceDigest.equals(targetDigest))
+            if (sourceDigest == null || !sourceDigest.equals(targetDigest))
             {
                 ticket.setStatus(Ticket.STATUS_ERROR);
                 ticket.setStatusMessage("Digest empty or does not match. Header digest: " + sourceDigest + " Computed: " + targetDigest);
