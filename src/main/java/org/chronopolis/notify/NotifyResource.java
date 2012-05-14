@@ -143,12 +143,26 @@ public final class NotifyResource {
             
             
             if (digest == null || !digest.equals(computedDigest)) {
-                LOG.info("Digest null or mismatch. Observed Header: " + digest + " Computed Digest: " +computedDigest);
-                return Response.status(Status.BAD_REQUEST).build();
+                StringBuilder error = new StringBuilder();
+                error.append("Digest null or mismatch. Observed Header: ");
+                error.append(digest);
+                error.append(" Computed Digest: ");
+                error.append(computedDigest);
+                LOG.info(error.toString());
+                return Response.status(Status.BAD_REQUEST)
+                               .entity(error.toString())
+                               .build();
                 
             } if (ir.hasErrors())
             {
-                return Response.status(Status.BAD_REQUEST).build();
+                StringBuilder errors = new StringBuilder();
+                for (String error : ir.getErrors()) {
+                    errors.append(error);
+                    errors.append("\n");
+                }
+                return Response.status(Status.BAD_REQUEST)
+                               .entity(errors.toString())
+                               .build();
             }
 
             Ticket ticket = tm.createTicket(ir, digest, computedDigest);
