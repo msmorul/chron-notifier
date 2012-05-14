@@ -14,6 +14,8 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 import org.apache.log4j.Logger;
 import org.apache.log4j.NDC;
 import org.chronopolis.notify.db.Ticket;
@@ -55,7 +57,7 @@ public class StatusResource {
     @GET
     @Path("{ticket}")
     @Produces("application/json")
-    public Ticket getStatus(@PathParam("ticket") String ticketId,
+    public Response getStatus(@PathParam("ticket") String ticketId,
             @Context HttpServletResponse response) {
         try {
 
@@ -63,23 +65,23 @@ public class StatusResource {
             LOG.info("Ticket Request ID: " + ticketId);
 
             Ticket ticket = tm.getTicket(ticketId);
-
             if (ticket != null) {
 
                 switch (ticket.getStatus()) {
                     case Ticket.STATUS_OPEN:
-                        response.setStatus(HttpServletResponse.SC_OK);
+                        return Response.status(Status.OK).header("Retry-After", "120").entity(ticket).build();
                     case Ticket.STATUS_FINISHED:
-                        response.setStatus(HttpServletResponse.SC_CREATED);
-                        break;
+                        return Response.status(Status.CREATED).entity(ticket).build();
                     case Ticket.STATUS_ERROR:
-                        response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                        return Response.status(Status.INTERNAL_SERVER_ERROR).entity(ticket).build();
+                    default:
+                        LOG.error("Unknown response case: " + ticket.getStatusMessage());
+                        return Response.status(Status.INTERNAL_SERVER_ERROR).entity(ticket).build();
                 }
-                return ticket;
 
             } else {
-                response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-                return null;
+                LOG.debug("Returning not-found, ticket ID unknown: " + ticketId);
+                return Response.status(Status.NOT_FOUND).build();
             }
 
         } finally {
@@ -106,7 +108,7 @@ public class StatusResource {
             @FormParam("description") String description,
             @FormParam("isFinished") @DefaultValue(value = "false") boolean isFinished,
             @Context HttpServletResponse response) {
-        
+
         try {
 
             NDC.push("U" + ticket);

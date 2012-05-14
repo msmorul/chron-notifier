@@ -9,7 +9,6 @@ import java.io.InputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Consumes;
@@ -18,6 +17,9 @@ import javax.ws.rs.Path;
 import javax.ws.rs.GET;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.ResponseBuilder;
+import javax.ws.rs.core.Response.Status;
 import org.apache.log4j.Logger;
 import org.apache.log4j.NDC;
 import org.chronopolis.notify.db.Ticket;
@@ -49,9 +51,8 @@ public final class NotifyResource {
     @GET
     @Path("{accountId}/{spaceId}")
     @Produces("application/json")
-    public TicketHolder requestBag(@PathParam("accountId") String accountId,
-            @PathParam("spaceId") String spaceId,
-            @Context HttpServletRequest request, @Context HttpServletResponse response) {
+    public Response requestBag(@PathParam("accountId") String accountId,
+            @PathParam("spaceId") String spaceId) {
         try {
 
             NDC.push("S" + accountId);
@@ -61,9 +62,11 @@ public final class NotifyResource {
             Ticket ticket = tm.createTicket(accountId, spaceId, null);
             MailUtil.sendMessage(ticket, null);
 
-            response.setStatus(HttpServletResponse.SC_ACCEPTED);
+            ResponseBuilder rb = Response.status(Status.ACCEPTED);
+            rb.header("Retry-After", "120");
+            rb.entity(ticket);
 
-            return new TicketHolder(ticket);
+            return rb.build();
         } finally {
             LOG.info("Completed request to retrieve item ID: " + spaceId + " Account: " + accountId);
             NDC.pop();
@@ -83,10 +86,10 @@ public final class NotifyResource {
     @GET
     @Path("{accountId}/{spaceId}/{contentId}")
     @Produces("application/json")
-    public TicketHolder requestBag(@PathParam("accountId") String accountId,
+    public Response requestBag(@PathParam("accountId") String accountId,
             @PathParam("spaceId") String spaceId,
-            @PathParam("contentId") String contentId,
-            @Context HttpServletRequest request, @Context HttpServletResponse response) {
+            @PathParam("contentId") String contentId
+            ) {
 
         try {
 
@@ -95,8 +98,12 @@ public final class NotifyResource {
 
             Ticket ticket = tm.createTicket(accountId, spaceId, contentId);
             MailUtil.sendMessage(ticket, null);
-            response.setStatus(HttpServletResponse.SC_ACCEPTED);
-            return new TicketHolder(ticket);
+            
+            ResponseBuilder rb = Response.status(Status.ACCEPTED);
+            rb.entity(ticket);
+            rb.header("Retry-After", "120");
+            return rb.build();
+            
         } finally {
             LOG.info("Completed request to retrieve item ID: " + spaceId + "/" + contentId + " Account: " + accountId);
             NDC.pop();
@@ -119,43 +126,44 @@ public final class NotifyResource {
     @Path("{accountId}/{spaceId}")
     @Consumes("text/plain")
     @Produces("application/json")
-    public TicketHolder putManifest(@PathParam("accountId") String accountId,
+    public Response putManifest(@PathParam("accountId") String accountId,
             @PathParam("spaceId") String spaceId, @Context HttpHeaders headers,
-            @Context HttpServletRequest request, @Context HttpServletResponse response) {
+            @Context HttpServletRequest request) {
         try {
 
             NDC.push("R" + accountId);
             LOG.info("Request to receive space. ID: " + spaceId + " Account: " + accountId);
-             String digest = extractMd5Header(headers);
-             LOG.debug("Manifest Digest: " + digest);
+            String digest = extractMd5Header(headers);
+            LOG.debug("Manifest Digest: " + digest);
             InputStream is = request.getInputStream();
             IngestRequest ir = new IngestRequest(accountId, spaceId);
             MessageDigest md = MessageDigest.getInstance("MD5");
             String computedDigest = ir.readStream(is, md);
 
-            if (digest != null )
-            {
-                LOG.info("Digest match: " + (digest.equals(computedDigest)));
-            }
             
-            Ticket ticket = tm.createTicket(ir,digest,computedDigest);
-            MailUtil.sendMessage(ticket, ir);
-
-
-            if (ir.hasErrors() || digest == null || !digest.equals(computedDigest)) {
-                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            } else {
-                response.setStatus(HttpServletResponse.SC_ACCEPTED);
+            
+            if (digest == null || !digest.equals(computedDigest)) {
+                LOG.info("Digest null or mismatch. Observed Header: " + digest + " Computed Digest: " +computedDigest);
+                return Response.status(Status.BAD_REQUEST).build();
+                
+            } if (ir.hasErrors())
+            {
+                return Response.status(Status.BAD_REQUEST).build();
             }
+
+            Ticket ticket = tm.createTicket(ir, digest, computedDigest);
+            MailUtil.sendMessage(ticket, ir);
+            ResponseBuilder rb = Response.status(Status.ACCEPTED);
+           
 
             //TODO: update response to reasonable value
-            response.setHeader("Retry-After", "120");
-            return new TicketHolder(ticket);
+            rb.header("Retry-After", "120");
+            return rb.build();
 
         } catch (IOException e) {
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            
             LOG.error("Error reading client supplied manifest stream ", e);
-            return null;
+            return Response.status(Status.BAD_REQUEST).build();
         } catch (NoSuchAlgorithmException e) {
             // should never happen
             LOG.error(e);
@@ -168,11 +176,10 @@ public final class NotifyResource {
         }
 
     }
-    
+
     private String extractMd5Header(HttpHeaders headers) {
-        
-        if ((headers.getRequestHeader(MD5_HEADER) == null) || (headers.getRequestHeader(MD5_HEADER).size() != 1))
-        {
+
+        if ((headers.getRequestHeader(MD5_HEADER) == null) || (headers.getRequestHeader(MD5_HEADER).size() != 1)) {
             return null;
         }
         return headers.getRequestHeader(MD5_HEADER).get(0);
