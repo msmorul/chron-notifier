@@ -14,7 +14,9 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.Response.Status;
 import org.apache.log4j.Logger;
 import org.apache.log4j.NDC;
@@ -65,25 +67,33 @@ public class StatusResource {
             LOG.info("Ticket Request ID: " + ticketId);
 
             Ticket ticket = tm.getTicket(ticketId);
+            ResponseBuilder rb ;
             if (ticket != null) {
 
                 switch (ticket.getStatus()) {
                     case Ticket.STATUS_OPEN:
-                        return Response.status(Status.OK).header("Retry-After", "120").entity(ticket).build();
+                        rb = Response.status(Status.OK).header("Retry-After", "120").entity(ticket);
+                        break;
                     case Ticket.STATUS_FINISHED:
+                        // finished case, return 201, response body set to stored manifest
                         return Response.status(Status.CREATED).entity(ticket).build();
                     case Ticket.STATUS_ERROR:
-                        return Response.status(Status.INTERNAL_SERVER_ERROR).entity(ticket).build();
+                        rb = Response.status(Status.INTERNAL_SERVER_ERROR).entity(ticket);
+                        break;
                     default:
                         LOG.error("Unknown response case: " + ticket.getStatusMessage());
-                        return Response.status(Status.INTERNAL_SERVER_ERROR).entity(ticket).build();
+                        rb =  Response.status(Status.INTERNAL_SERVER_ERROR).entity(ticket);
                 }
 
             } else {
                 LOG.debug("Returning not-found, ticket ID unknown: " + ticketId);
-                return Response.status(Status.NOT_FOUND).build();
+                 rb = Response.status(Status.NOT_FOUND);
+                rb.type(MediaType.TEXT_PLAIN_TYPE);
+                rb.entity("No such ticket " + ticketId);
+                
             }
 
+            return rb.build();
         } finally {
             LOG.info("Completed Ticket Request ID: " + ticketId);
             NDC.pop();

@@ -17,6 +17,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.GET;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.Response.Status;
@@ -88,8 +89,7 @@ public final class NotifyResource {
     @Produces("application/json")
     public Response requestBag(@PathParam("accountId") String accountId,
             @PathParam("spaceId") String spaceId,
-            @PathParam("contentId") String contentId
-            ) {
+            @PathParam("contentId") String contentId) {
 
         try {
 
@@ -98,12 +98,12 @@ public final class NotifyResource {
 
             Ticket ticket = tm.createTicket(accountId, spaceId, contentId);
             MailUtil.sendMessage(ticket, null);
-            
+
             ResponseBuilder rb = Response.status(Status.ACCEPTED);
             rb.entity(ticket);
             rb.header("Retry-After", "120");
             return rb.build();
-            
+
         } finally {
             LOG.info("Completed request to retrieve item ID: " + spaceId + "/" + contentId + " Account: " + accountId);
             NDC.pop();
@@ -139,29 +139,36 @@ public final class NotifyResource {
             IngestRequest ir = new IngestRequest(accountId, spaceId);
             MessageDigest md = MessageDigest.getInstance("MD5");
             String computedDigest = ir.readStream(is, md);
+            ResponseBuilder rb;
 
-            
-            
+            // handle md5 missing or corrupt
             if (digest == null || !digest.equals(computedDigest)) {
-                LOG.info("Digest null or mismatch. Observed Header: " + digest + " Computed Digest: " +computedDigest);
-                return Response.status(Status.BAD_REQUEST).build();
-                
-            } if (ir.hasErrors())
-            {
-                return Response.status(Status.BAD_REQUEST).build();
+                rb = Response.status(Status.BAD_REQUEST);
+                LOG.info("Digest null or mismatch. Observed Header: " + digest + " Computed Digest: " + computedDigest);
+                rb.entity("Digest null or mismatch. Observed Header: " + digest + " Computed Digest: " + computedDigest);
+                rb.type(MediaType.TEXT_PLAIN_TYPE);
+                return rb.build();
+
+            }
+            if (ir.hasErrors()) {
+                rb = Response.status(Status.BAD_REQUEST);
+                rb.type(MediaType.TEXT_PLAIN_TYPE);
+                rb.entity("Corrupt lines in \n");
+                return rb.build();
+            } else {
+                Ticket ticket = tm.createTicket(ir, digest, computedDigest);
+                MailUtil.sendMessage(ticket, ir);
+                rb = Response.status(Status.ACCEPTED);
+
+                //TODO: update response to reasonable value
+                rb.header("Retry-After", "120");
+                rb.entity(ticket);
             }
 
-            Ticket ticket = tm.createTicket(ir, digest, computedDigest);
-            MailUtil.sendMessage(ticket, ir);
-            ResponseBuilder rb = Response.status(Status.ACCEPTED);
-           
-
-            //TODO: update response to reasonable value
-            rb.header("Retry-After", "120");
             return rb.build();
 
         } catch (IOException e) {
-            
+
             LOG.error("Error reading client supplied manifest stream ", e);
             return Response.status(Status.BAD_REQUEST).build();
         } catch (NoSuchAlgorithmException e) {

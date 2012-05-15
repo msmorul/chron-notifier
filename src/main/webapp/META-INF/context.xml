@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Context antiJARLocking="true" path="/notification-server-1.0-SNAPSHOT">
-  <Parameter name="server" value="smtp.umiacs.umd.edu"/>
+  <Parameter name="server" value="bubs.umiacs.umd.edu"/>
   <Parameter name="fromAddr" value="chron@umiacs.umd.edu"/>
   <Parameter name="toAddr" value="toaster@umiacs.umd.edu"/>
 </Context>
