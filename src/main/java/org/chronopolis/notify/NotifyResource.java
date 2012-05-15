@@ -153,7 +153,7 @@ public final class NotifyResource {
             if (ir.hasErrors()) {
                 rb = Response.status(Status.BAD_REQUEST);
                 rb.type(MediaType.TEXT_PLAIN_TYPE);
-                rb.entity("Corrupt lines in \n");
+                rb.entity("Corrupt lines");
                 return rb.build();
             } else {
                 Ticket ticket = tm.createTicket(ir, digest, computedDigest);

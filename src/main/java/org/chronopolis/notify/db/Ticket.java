@@ -69,6 +69,7 @@ public class Ticket implements Serializable {
     private String itemId;
     private int requestType;
 
+    @JsonIgnore
     public String getManifest() {
         return manifest;
     }

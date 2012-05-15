@@ -9,7 +9,7 @@
         <title>Chronopolis Notification Server</title>
         <LINK href="960.css" rel="stylesheet" type="text/css">
         <LINK href="style.css" rel="stylesheet" type="text/css">
-         <script type="text/javascript" src="jquery.js"></script>          
+        <script type="text/javascript" src="jquery.js"></script>          
     </head>
     <body>
     <body>
@@ -27,33 +27,37 @@
                         <div class="grid_2">Ticket ID</div>
                         <div class="grid_2">${item.identifier}</div>
                         <div class="grid_4">
+                            <c:if test="${item.status == 0}">Open</c:if>
                             <c:if test="${item.status == 1}">Finished</c:if>
                             <c:if test="${item.status == 2}">Errors</c:if>
                         </div>
                         <div class="clear"></div>
                         
-                        <div class="grid_9 push_1 ticket_comments"><pre>${item.statusMessage}</pre></div>
-                        <div class="clear"></div>
-                        
+                        <c:if test="${item.statusMessage != '' && item.statusMessage != null}">
+                            <div class="grid_9 push_1 ticket_comments"><pre>${item.statusMessage}</pre></div>
+                            <div class="clear"></div>
+                        </c:if>
+
                         <c:if test="${item.status == 0}">
                             <div class="grid_10 ticket_form_block">
-                            <form action="resources/status/${item.identifier}" id="f-${item.identifier}"method="post">
-                                <div class="grid_2">Set Status</div>
-                                <div class="grid_4">Comments</div>
-                                <div class="clear"></div>
+                                <form action="resources/status/${item.identifier}" id="f-${item.identifier}"method="post">
+                                    <div class="grid_2">Set Status</div>
+                                    <div class="grid_4">Comments</div>
+                                    <div class="clear"></div>
 
-                                <div class="grid_2 ticket_status_form_block">
-                                    <div><input type="checkbox" name="isFinished" value="true" >Finished</div>
-                                    <div><input type="checkbox" name="isError" value="true" >Errors</div>
-                                    <div class="submit_form_link"><a href="#" onclick='$.post("resources/status/${item.identifier}", $("#f-${item.identifier}").serialize());location.reload()'>Update Ticket</a></div>
-                                </div>
+                                    <div class="grid_2 ticket_status_form_block">
+                                        <div><input type="checkbox" name="isFinished" value="true" >Finished</div>
+                                        <div><input type="checkbox" name="isError" value="true" >Errors</div>
+                                        <div class="submit_form_link"><a href="#" onclick='$.post("resources/status/${item.identifier}", $("#f-${item.identifier}").serialize());location.reload()'>Update Ticket</a></div>
+                                        <div><a href="resources/status/${item.identifier}/manifest">Manifest</a></div>
+                                    </div>
 
-                                <div class="grid_4"><textarea name="description" cols="40" rows="10"></textarea></div>
-                                
-                            </form>
+                                    <div class="grid_4"><textarea name="description" cols="80" rows="5"></textarea></div>
+
+                                </form>
                             </div>
                         </c:if>
-                        
+
                         <div class="clear"></div>
 
                     </div>
