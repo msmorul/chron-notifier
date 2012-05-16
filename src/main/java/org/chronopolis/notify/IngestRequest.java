@@ -27,9 +27,12 @@ public class IngestRequest {
     private static final Logger LOG = Logger.getLogger(IngestRequest.class);
     private Map<String, String> manifest;
     private List<String> errors = new ArrayList<String>();
-    private String space;
-    private String account;
+    private String space = null;
+    private String account = null;
 
+    public IngestRequest() {
+    }
+    
     public IngestRequest(String account, String space) {
         this.space = space;
         this.account = account;

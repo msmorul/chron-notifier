@@ -190,6 +190,22 @@ public class TicketManager {
         return sb.toString();
     }
     
+    public void setTicketManifest(IngestRequest ir, Ticket t) {
+        EntityManager em = emf.createEntityManager();
+        
+        try
+        {
+            t.setManifest(manifestToString(ir));
+            em.getTransaction().begin();
+            em.merge(t);
+            em.getTransaction().commit();
+        }
+        finally
+        {
+            em.close();
+        }
+    }
+    
     private boolean setTicketStatus(String ticketId, String description, int state) {
         EntityManager em = emf.createEntityManager();
 

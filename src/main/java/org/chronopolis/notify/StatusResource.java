@@ -4,7 +4,12 @@
  */
 package org.chronopolis.notify;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.List;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
@@ -51,7 +56,7 @@ public class StatusResource {
      *  - returns 200/OK w/ manifest or empty if no manifest is attached
      *  - NOT_FOUND on invalid ticket ID
      * 
-     *  - tbd: should we generate an md5 header??
+     *  - todo: add md5sum manifest to header
      * 
      * @param ticketId
      * @return 
@@ -107,12 +112,17 @@ public class StatusResource {
     @PUT
     @Path("{ticket}")
     @Consumes(MediaType.TEXT_PLAIN)
-    public Response attachManifest(@PathParam("ticket") String ticketId) {
+    public Response attachManifest(@PathParam("ticket") String ticketId, @Context HttpServletRequest request) {
         NDC.push("T" + ticketId);
         try {
             LOG.info("Ticket Request ID: " + ticketId);
 
             Ticket ticket = tm.getTicket(ticketId);
+            InputStream is = request.getInputStream();
+            IngestRequest ir = new IngestRequest();
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            String computedDigest = ir.readStream(is, md);
+            
             ResponseBuilder rb;
             if (ticket != null) {
 
@@ -127,7 +137,7 @@ public class StatusResource {
                 }
                 else
                 {
-                    //TODO: read manifest
+                    tm.setTicketManifest(ir, ticket);
                     rb = Response.ok();
                 }
             } else {
@@ -139,6 +149,14 @@ public class StatusResource {
             }
 
             return rb.build();
+        } catch (IOException e) {
+
+            LOG.error("Error reading client supplied manifest stream ", e);
+            return Response.status(Status.BAD_REQUEST).build();
+        } catch (NoSuchAlgorithmException e) {
+            // should never happen
+            LOG.error(e);
+            throw new RuntimeException(e);
         } finally {
             LOG.info("Completed ticket manifest attachment: " + ticketId);
             NDC.pop();
@@ -148,9 +166,9 @@ public class StatusResource {
     /**
      * response set to 
      *      bad_request for non-existent tickets
-     *      200/OK for open tickets
-     *      201/CREATED for successfully finished tickets
-     *      500/INTERNAL ERROR for requests that errored out
+     *      200/OK for open tickets return application/json 
+     *      201/CREATED for successfully finished tickets, will return manifest text/plain rather than json
+     *      500/INTERNAL ERROR for requests that errored out, ticket json in body
      *      404/NOT_FOUND
      * 
      * @param ticket
@@ -176,7 +194,10 @@ public class StatusResource {
                         break;
                     case Ticket.STATUS_FINISHED:
                         // finished case, return 201, response body set to stored manifest
-                        return Response.status(Status.CREATED).entity(ticket).build();
+                        //TODO: include md5 digest for manifest
+                        rb = Response.status(Status.CREATED).entity(ticket.getManifest());
+                        rb.type(MediaType.TEXT_PLAIN_TYPE);
+                        //return R
                     case Ticket.STATUS_ERROR:
                         rb = Response.status(Status.INTERNAL_SERVER_ERROR).entity(ticket);
                         break;
@@ -202,9 +223,7 @@ public class StatusResource {
 
     /**
      * Update the running state of a ticket
-     * 
-     * // TODO: add manifest ingest as form/multipart
-     * 
+     *      
      * @param ticket
      * @param isError
      * @param description

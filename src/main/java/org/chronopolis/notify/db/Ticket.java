@@ -13,6 +13,7 @@ import javax.persistence.Lob;
 import javax.persistence.NamedQueries;
 import javax.persistence.NamedQuery;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlTransient;
 import org.codehaus.jackson.annotate.JsonIgnore;
 
 /**
@@ -61,6 +62,7 @@ public class Ticket implements Serializable {
     private String identifier;
     private int status;
     @Lob
+    @XmlTransient
     private String manifest;
     @Lob
     private String statusMessage;
@@ -73,7 +75,8 @@ public class Ticket implements Serializable {
     public String getManifest() {
         return manifest;
     }
-
+    
+    @JsonIgnore
     public void setManifest(String manifest) {
         this.manifest = manifest;
     }
