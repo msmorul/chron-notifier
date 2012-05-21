@@ -197,6 +197,7 @@ public class StatusResource {
                         //TODO: include md5 digest for manifest
                         rb = Response.status(Status.CREATED).entity(ticket.getManifest());
                         rb.type(MediaType.TEXT_PLAIN_TYPE);
+                        break;
                         //return R
                     case Ticket.STATUS_ERROR:
                         rb = Response.status(Status.INTERNAL_SERVER_ERROR).entity(ticket);
