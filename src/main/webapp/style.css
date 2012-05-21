@@ -11,6 +11,11 @@
    Syntax recommendation http://www.w3.org/TR/REC-CSS2/
 */
 
+.body {
+    font-family: sans-serif;
+    font-size: 10px;
+}
+
 .title { 
    
     padding: 15px;
@@ -36,9 +41,14 @@
 .ticket_form_block {
     padding-top: 15px;
     padding-bottom: 15px;
-    border: grey dashed 1px;
+    /*border: grey dashed 1px;*/
+    display: none;
+    
 }
 
+.ticket_details {
+    display: none;
+}
 .ticket_comments {
     height: 150px;
     overflow: scroll;

@@ -3,4 +3,5 @@
   <Parameter name="server" value="bubs.umiacs.umd.edu"/>
   <Parameter name="fromAddr" value="chron@umiacs.umd.edu"/>
   <Parameter name="toAddr" value="toaster@umiacs.umd.edu"/>
+  <Parameter name="baseURL" value="http://localhost:8084/notification-server-1.0-SNAPSHOT"/>
 </Context>

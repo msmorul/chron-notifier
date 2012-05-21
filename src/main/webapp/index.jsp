@@ -8,8 +8,11 @@
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
         <title>Chronopolis Notification Server</title>
         <LINK href="960.css" rel="stylesheet" type="text/css">
+        <link type="text/css" href="css/ui-lightness/jquery-ui-1.8.20.custom.css" rel="Stylesheet" />	
         <LINK href="style.css" rel="stylesheet" type="text/css">
         <script type="text/javascript" src="jquery.js"></script>          
+
+        <script type="text/javascript" src="jquery-ui-1.8.20.custom.min.js"></script>          
     </head>
     <body>
     <body>
@@ -24,35 +27,55 @@
                 <c:forEach var="item" items="${ticketList}">
                     <div class="grid_10 ticket_block">
 
-                        <div class="grid_2">Ticket ID</div>
-                        <div class="grid_2">${item.identifier}</div>
-                        <div class="grid_4">
-                            <c:if test="${item.status == 0}">Open</c:if>
-                            <c:if test="${item.status == 1}">Finished</c:if>
-                            <c:if test="${item.status == 2}">Errors</c:if>
+                        <div class="grid_3"><a href="#" onclick='$( "#details-${item.id}" ).dialog({modal: true})'>${item.identifier}</a> <a href="resources/status/${item.identifier}/manifest"><img alt="Download Manifest" src="emblem-downloads.png"></a></div>
+                        <div class="grid_2">
+                            <c:if test="${item.requestType == 0}">Ingest Request</c:if>
+                            <c:if test="${item.requestType == 1}">Complete Restore</c:if>
+                            <c:if test="${item.requestType == 2}">Item Restore</c:if>
                         </div>
+
+                        <div class="grid_3">
+                            <c:if test="${item.status == 0}">Ticket Open</c:if>
+                            <c:if test="${item.status == 1}">Ticket Finished</c:if>
+                            <c:if test="${item.status == 2}">Ticket closed with errors</c:if>
+                        </div>
+                        <div><c:if test="${item.status == 0}"><a href="#" onclick='$( "#d-${item.id}" ).dialog({modal: true})'>Update</a></c:if></div>
                         <div class="clear"></div>
+
                         
-                        <c:if test="${item.statusMessage != '' && item.statusMessage != null}">
-                            <div class="grid_9 push_1 ticket_comments"><pre>${item.statusMessage}</pre></div>
-                            <div class="clear"></div>
-                        </c:if>
+
+                        <div class="ticket_details" id="details-${item.id}" title="${item.identifier}">
+                            <ul>
+                                <li><c:if test="${item.requestType == 0}">Ingest Request</c:if>
+                                    <c:if test="${item.requestType == 1}">Complete Restore</c:if>
+                                    <c:if test="${item.requestType == 2}">Item Restore</c:if>
+                                </li>
+                                <li>
+                                    <c:if test="${item.status == 0}">Ticket Open</c:if>
+                                    <c:if test="${item.status == 1}">Ticket Finished</c:if>
+                                    <c:if test="${item.status == 2}">Ticket closed with errors</c:if>
+                                    </li>
+                                    <li>${item.spaceId}</li>
+                                    <li>${item.accountId}</li>
+                                    <li>${item.itemId}</li>
+                                    <li>${item.statusMessage}</li>
+
+
+                            </ul>
+                        </div>
 
                         <c:if test="${item.status == 0}">
-                            <div class="grid_10 ticket_form_block">
+                            <div class="ticket_form_block" id="d-${item.id}" title="Update Ticket">
                                 <form action="resources/status/${item.identifier}" id="f-${item.identifier}"method="post">
-                                    <div class="grid_2">Set Status</div>
-                                    <div class="grid_4">Comments</div>
-                                    <div class="clear"></div>
+                                    
 
-                                    <div class="grid_2 ticket_status_form_block">
+                                    <div class=" ticket_status_form_block">
                                         <div><input type="checkbox" name="isFinished" value="true" >Finished</div>
                                         <div><input type="checkbox" name="isError" value="true" >Errors</div>
-                                        <div class="submit_form_link"><a href="#" onclick='$.post("resources/status/${item.identifier}", $("#f-${item.identifier}").serialize());location.reload()'>Update Ticket</a></div>
-                                        <div><a href="resources/status/${item.identifier}/manifest">Manifest</a></div>
                                     </div>
 
-                                    <div class="grid_4"><textarea name="description" cols="80" rows="5"></textarea></div>
+                                    <div class=""><textarea name="description" cols="30" rows="5"></textarea></div>
+                                    <div class="submit_form_link"><a href="#" onclick='$.post("resources/status/${item.identifier}", $("#f-${item.identifier}").serialize());location.reload()'>Update Ticket</a></div>
 
                                 </form>
                             </div>
