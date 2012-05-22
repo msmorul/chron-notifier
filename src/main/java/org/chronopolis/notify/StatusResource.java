@@ -137,7 +137,7 @@ public class StatusResource {
                 }
                 else
                 {
-                    tm.setTicketManifest(ir, ticket);
+                    tm.setTicketReturnManifest(ir, ticket);
                     rb = Response.ok();
                 }
             } else {
@@ -195,7 +195,7 @@ public class StatusResource {
                     case Ticket.STATUS_FINISHED:
                         // finished case, return 201, response body set to stored manifest
                         //TODO: include md5 digest for manifest
-                        rb = Response.status(Status.CREATED).entity(ticket.getManifest());
+                        rb = Response.status(Status.CREATED).entity(ticket.getReturnManifest());
                         rb.type(MediaType.TEXT_PLAIN_TYPE);
                         break;
                         //return R

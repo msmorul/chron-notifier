@@ -65,12 +65,23 @@ public class Ticket implements Serializable {
     @XmlTransient
     private String manifest;
     @Lob
+    @XmlTransient
+    private String returnManifest;
+    @Lob
     private String statusMessage;
     private String spaceId;
     private String accountId;
     private String itemId;
     private int requestType;
 
+    public String getReturnManifest() {
+        return returnManifest;
+    }
+
+    public void setReturnManifest(String returnManifest) {
+        this.returnManifest = returnManifest;
+    }
+    
     @JsonIgnore
     public String getManifest() {
         return manifest;

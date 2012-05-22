@@ -190,12 +190,12 @@ public class TicketManager {
         return sb.toString();
     }
     
-    public void setTicketManifest(IngestRequest ir, Ticket t) {
+    public void setTicketReturnManifest(IngestRequest ir, Ticket t) {
         EntityManager em = emf.createEntityManager();
         
         try
         {
-            t.setManifest(manifestToString(ir));
+            t.setReturnManifest(manifestToString(ir));
             em.getTransaction().begin();
             em.merge(t);
             em.getTransaction().commit();
