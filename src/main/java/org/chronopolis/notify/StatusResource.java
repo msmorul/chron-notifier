@@ -128,7 +128,7 @@ public class StatusResource {
 
                 if (!((ticket.getRequestType() == Ticket.REQUEST_FULL_RESTORE)
                         || (ticket.getRequestType() == Ticket.REQUEST_SINGLE_ITEM)
-                        || ticket.getStatus() != Ticket.STATUS_OPEN)) {
+                        || ticket.getStatus() == Ticket.STATUS_OPEN)) {
                     LOG.debug("Attempt to attach manifest to closed or non-GET ticket ");
                     rb = Response.status(Status.BAD_REQUEST);
                     rb.type(MediaType.TEXT_PLAIN_TYPE);
