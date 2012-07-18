@@ -15,6 +15,7 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
+import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
@@ -73,12 +74,12 @@ public class StatusResource {
             ResponseBuilder rb;
             if (ticket != null) {
 
-                if (ticket.getManifest() == null || ticket.getManifest().isEmpty()) {
-                    rb = Response.ok();
-                }
-                else
-                {
-                    rb = Response.ok(ticket.getManifest());
+                TicketManager tm = new TicketManager();
+                try {
+                    return Response.ok(tm.loadPutManifest(ticketId), "text/plain").build();
+                } catch (IOException e) {
+                    LOG.error("Error retrieving " + ticketId);
+                    throw new RuntimeException(e);
                 }
             } else {
                 LOG.debug("Returning not-found, ticket ID unknown: " + ticketId);
@@ -95,16 +96,15 @@ public class StatusResource {
         }
     }
 
-    
     /**
      * Attach a manifest to a ticket
      *  - this should only be called on ticket types of Get it
      *  - for put requests, calls to this will error
      *  - on successful upload, response will be set to 200/OK
      *  - NOT_FOUND on invalid ticket ID
-     *  - BAD_REQUEST on closed or non-get ticket
+     *  - BAD_REQUEST on closed or non-get ticket or on mismatched digest
      * 
-     *  - tbd: should we look for an md5 header?
+     * TODO: What should be returned if we encounter formatting errors? Currently, we will still return OK
      * 
      * @param ticketId
      * @return 
@@ -112,7 +112,8 @@ public class StatusResource {
     @PUT
     @Path("{ticket}")
     @Consumes(MediaType.TEXT_PLAIN)
-    public Response attachManifest(@PathParam("ticket") String ticketId, @Context HttpServletRequest request) {
+    public Response attachManifest(@PathParam("ticket") String ticketId, @Context HttpServletRequest request,
+            @HeaderParam(NotifyResource.MD5_HEADER) String digest) {
         NDC.push("T" + ticketId);
         try {
             LOG.info("Ticket Request ID: " + ticketId);
@@ -122,21 +123,28 @@ public class StatusResource {
             IngestRequest ir = new IngestRequest();
             MessageDigest md = MessageDigest.getInstance("MD5");
             String computedDigest = ir.readStream(is, md);
-            
+
+
             ResponseBuilder rb;
+            // BAD_REQUEST on digesting errors
+            if (digest == null || !digest.equals(computedDigest)) {
+                rb = Response.status(Status.BAD_REQUEST);
+                LOG.info("Digest null or mismatch. Observed Header: " + digest + " Computed Digest: " + computedDigest);
+                rb.entity("Digest null or mismatch. Observed Header: " + digest + " Computed Digest: " + computedDigest);
+                rb.type(MediaType.TEXT_PLAIN_TYPE);
+                return rb.build();
+
+            }
+
             if (ticket != null) {
 
-                if (!((ticket.getRequestType() == Ticket.REQUEST_FULL_RESTORE)
-                        || (ticket.getRequestType() == Ticket.REQUEST_SINGLE_ITEM)
-                        || ticket.getStatus() == Ticket.STATUS_OPEN)) {
-                    LOG.debug("Attempt to attach manifest to closed or non-GET ticket ");
+                if (!(ticket.getStatus() != Ticket.STATUS_OPEN)) {
+                    LOG.debug("Attempt to attach manifest to closed ticket " + ticketId);
                     rb = Response.status(Status.BAD_REQUEST);
                     rb.type(MediaType.TEXT_PLAIN_TYPE);
-                    rb.entity("Attempt to attach manifest to closed or non-GET ticket ");
+                    rb.entity("Attempt to attach manifest to closed ticket " + ticketId);
 
-                }
-                else
-                {
+                } else {
                     tm.setTicketReturnManifest(ir, ticket);
                     rb = Response.ok();
                 }
@@ -168,6 +176,10 @@ public class StatusResource {
      *      bad_request for non-existent tickets
      *      200/OK for open tickets return application/json 
      *      201/CREATED for successfully finished tickets, will return manifest text/plain rather than json
+     *          - This manifest must be placed by a call to attachManifest
+     *          - For Put Content Space: the BagIt manifest of items that were ingested into Chronopolis
+     *          - For Get Content Item: the BagIt-style line entry of the requested content item
+     *          - For Get Content Space: the BagIt manifest of items that were copied out of Chronopolis
      *      500/INTERNAL ERROR for requests that errored out, ticket json in body
      *      404/NOT_FOUND
      * 
@@ -195,10 +207,14 @@ public class StatusResource {
                     case Ticket.STATUS_FINISHED:
                         // finished case, return 201, response body set to stored manifest
                         //TODO: include md5 digest for manifest
-                        rb = Response.status(Status.CREATED).entity(ticket.getReturnManifest());
-                        rb.type(MediaType.TEXT_PLAIN_TYPE);
+                        try {
+                            rb = Response.ok(tm.loadReturnManifest(ticketId), "text/plain");
+                        } catch (IOException e) {
+                            LOG.error("Error retrieving " + ticketId);
+                            throw new RuntimeException(e);
+                        }
                         break;
-                        //return R
+                    //return R
                     case Ticket.STATUS_ERROR:
                         rb = Response.status(Status.INTERNAL_SERVER_ERROR).entity(ticket);
                         break;
@@ -224,6 +240,10 @@ public class StatusResource {
 
     /**
      * Update the running state of a ticket
+     *  Returns following codes:
+     *   - BAD_REQUEST - ticket is not in open state, or return manifest has not been set
+     *   - NOT_FOUND - ticket does not exist
+     *   - OK - ticket  updated
      *      
      * @param ticket
      * @param isError
@@ -233,13 +253,28 @@ public class StatusResource {
      */
     @POST
     @Path("{ticket}")
-    public void setStatus(@PathParam("ticket") String ticket,
+    public Response setStatus(@PathParam("ticket") String ticket,
             @FormParam("isError") @DefaultValue(value = "false") boolean isError,
             @FormParam("description") String description,
             @FormParam("isFinished") @DefaultValue(value = "false") boolean isFinished,
             @Context HttpServletResponse response) {
 
         try {
+
+            Ticket t = tm.getTicket(ticket);
+            if (t == null) {
+                return Response.status(Status.NOT_FOUND).build();
+            }
+            if (t.getStatus() != Ticket.STATUS_OPEN) {
+                LOG.debug("Attempt to update closed ticket " + ticket);
+                return Response.status(Status.BAD_REQUEST).build();
+            }
+            
+            if (!tm.hasReturnManifest(ticket) && (isError || isFinished))
+            {
+                LOG.debug("Attempt to update ticket with no manifest" + ticket);
+                return Response.status(Status.BAD_REQUEST).entity("Attempt to update ticket with no manifest" + ticket).build();
+            }
 
             NDC.push("U" + ticket);
             LOG.info("Ticket Request ID: " + ticket + " error: " + isError + " finished: " + isFinished);
@@ -250,6 +285,7 @@ public class StatusResource {
             } else {
                 tm.updateMessage(ticket, description);
             }
+            return Response.ok().build();
         } finally {
             LOG.info("Completed Ticket Request ID: " + ticket);
             NDC.pop();

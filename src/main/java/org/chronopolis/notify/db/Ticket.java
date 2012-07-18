@@ -61,12 +61,12 @@ public class Ticket implements Serializable {
     private Long id;
     private String identifier;
     private int status;
-    @Lob
-    @XmlTransient
-    private String manifest;
-    @Lob
-    @XmlTransient
-    private String returnManifest;
+//    @Lob
+//    @XmlTransient
+//    private String manifest;
+//    @Lob
+//    @XmlTransient
+//    private String returnManifest;
     @Lob
     private String statusMessage;
     private String spaceId;
@@ -74,23 +74,23 @@ public class Ticket implements Serializable {
     private String itemId;
     private int requestType;
 
-    public String getReturnManifest() {
-        return returnManifest;
-    }
-
-    public void setReturnManifest(String returnManifest) {
-        this.returnManifest = returnManifest;
-    }
-    
-    @JsonIgnore
-    public String getManifest() {
-        return manifest;
-    }
-    
-    @JsonIgnore
-    public void setManifest(String manifest) {
-        this.manifest = manifest;
-    }
+//    public String getReturnManifest() {
+//        return returnManifest;
+//    }
+//
+//    public void setReturnManifest(String returnManifest) {
+//        this.returnManifest = returnManifest;
+//    }
+//    
+//    @JsonIgnore
+//    public String getManifest() {
+//        return manifest;
+//    }
+//    
+//    @JsonIgnore
+//    public void setManifest(String manifest) {
+//        this.manifest = manifest;
+//    }
 
     public String getAccountId() {
         return accountId;

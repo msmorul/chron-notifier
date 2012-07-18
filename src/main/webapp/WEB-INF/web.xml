@@ -7,6 +7,9 @@
         <welcome-file>/Index</welcome-file>
     </welcome-file-list>
     <listener>
+        <listener-class>org.chronopolis.notify.ManifestDirectoryListener</listener-class>
+    </listener>
+    <listener>
         <listener-class>org.chronopolis.notify.MailUtil</listener-class>
     </listener>
     <servlet>
@@ -26,6 +29,19 @@
         <servlet-name>IndexServlet</servlet-name>
         <url-pattern>/Index</url-pattern>
     </servlet-mapping>
+    <filter>
+        <filter-name>CharsetFilter</filter-name>
+        <filter-class>org.chronopolis.notify.CharsetFilter</filter-class>
+        <init-param>
+            <param-name>requestEncoding</param-name>
+            <param-value>UTF-8</param-value>
+        </init-param>
+    </filter>
+ 
+    <filter-mapping>
+        <filter-name>CharsetFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
     <session-config>
         <session-timeout>
             30

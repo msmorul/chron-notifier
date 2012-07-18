@@ -15,6 +15,7 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.GET;
+import javax.ws.rs.HeaderParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
@@ -128,12 +129,13 @@ public final class NotifyResource {
     @Produces("application/json")
     public Response putManifest(@PathParam("accountId") String accountId,
             @PathParam("spaceId") String spaceId, @Context HttpHeaders headers,
+            @HeaderParam(MD5_HEADER) String digest,
             @Context HttpServletRequest request) {
         try {
 
             NDC.push("R" + accountId);
             LOG.info("Request to receive space. ID: " + spaceId + " Account: " + accountId);
-            String digest = extractMd5Header(headers);
+            //String digest = extractMd5Header(headers);
             LOG.debug("Manifest Digest: " + digest);
             InputStream is = request.getInputStream();
             IngestRequest ir = new IngestRequest(accountId, spaceId);
@@ -184,11 +186,11 @@ public final class NotifyResource {
 
     }
 
-    private String extractMd5Header(HttpHeaders headers) {
-
-        if ((headers.getRequestHeader(MD5_HEADER) == null) || (headers.getRequestHeader(MD5_HEADER).size() != 1)) {
-            return null;
-        }
-        return headers.getRequestHeader(MD5_HEADER).get(0);
-    }
+//    private String extractMd5Header(HttpHeaders headers) {
+//
+//        if ((headers.getRequestHeader(MD5_HEADER) == null) || (headers.getRequestHeader(MD5_HEADER).size() != 1)) {
+//            return null;
+//        }
+//        return headers.getRequestHeader(MD5_HEADER).get(0);
+//    }
 }

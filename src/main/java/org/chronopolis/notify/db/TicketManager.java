@@ -4,14 +4,18 @@
  */
 package org.chronopolis.notify.db;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
-import java.util.Map;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.NoResultException;
 import javax.persistence.Query;
 import org.apache.log4j.Logger;
 import org.chronopolis.notify.IngestRequest;
+import org.chronopolis.notify.ManifestDirectoryListener;
 
 /**
  *
@@ -19,11 +23,41 @@ import org.chronopolis.notify.IngestRequest;
  */
 public class TicketManager {
 
+    /**
+     * prefix for result/return manifest filenames
+     */
+    private static final String RESULT_PREFIX = "result-";
+    /**
+     * prefix for put manifest filenames
+     */
+    private static final String PUT_PREFIX = "put-";
     private static EntityManagerFactory emf;
     private static final Logger LOG = Logger.getLogger(TicketManager.class);
 
     public TicketManager() {
         emf = EntityManagerFactoryProducer.get();
+    }
+
+    public boolean hasReturnManifest(String ticketId)
+    {
+        return new File(ManifestDirectoryListener.getDirectory(), RESULT_PREFIX + ticketId).isFile();
+    }
+    
+    public InputStream loadPutManifest(String ticketId) throws IOException {
+        return loadStream(ticketId, PUT_PREFIX);
+    }
+
+    public InputStream loadReturnManifest(String ticketId) throws IOException {
+        return loadStream(ticketId, RESULT_PREFIX);
+    }
+
+    private InputStream loadStream(String ticketId, String prefix) throws IOException {
+        Ticket t = getTicket(ticketId);
+        if (t == null) {
+            throw new IOException("Bad ticket " + ticketId);
+        }
+        FileInputStream manifestIS = new FileInputStream(new File(ManifestDirectoryListener.getDirectory(), prefix + ticketId));
+        return manifestIS;
     }
 
     /**
@@ -137,7 +171,7 @@ public class TicketManager {
      * @param ir transfer request
      * @return new ticket
      */
-    public Ticket createTicket(IngestRequest ir,String sourceDigest, String targetDigest) {
+    public Ticket createTicket(IngestRequest ir, String sourceDigest, String targetDigest) {
         EntityManager em = emf.createEntityManager();
 
         try {
@@ -149,17 +183,17 @@ public class TicketManager {
             ticket.setRequestType(Ticket.REQUEST_INGEST);
 
 //            ticket.setManifestValues(ir.getManifest());
-            if (sourceDigest == null || !sourceDigest.equals(targetDigest))
-            {
+            if (sourceDigest == null || !sourceDigest.equals(targetDigest)) {
                 ticket.setStatus(Ticket.STATUS_ERROR);
                 ticket.setStatusMessage("Digest empty or does not match. Header digest: " + sourceDigest + " Computed: " + targetDigest);
-            }
-            else if (ir.hasErrors()) {
+            } else if (ir.hasErrors()) {
                 ticket.setStatus(Ticket.STATUS_ERROR);
                 ticket.setStatusMessage(createErrorList(ir));
             } else {
                 ticket.setStatusMessage("Processing request sent");
-                ticket.setManifest(manifestToString(ir));
+//                ticket.setManifest(manifestToString(ir));
+                LOG.debug("Renaming tmp manifest to PUT manifest " + ir.getManifestFile());
+                ir.getManifestFile().renameTo(new File(ir.getManifestFile().getParentFile(), PUT_PREFIX + ticket.getIdentifier()));
                 ticket.setStatus(Ticket.STATUS_OPEN);
             }
 
@@ -182,30 +216,20 @@ public class TicketManager {
         return sb.toString();
     }
 
-    private String manifestToString(IngestRequest ir) {
-        StringBuilder sb = new StringBuilder();
-        for (Map.Entry<String, String> entry : ir.getManifest().entrySet()) {
-                sb.append(entry.getValue()).append(" ").append(entry.getKey()).append("\n");
-            }
-        return sb.toString();
-    }
-    
+//    private String manifestToString(IngestRequest ir) {
+//        StringBuilder sb = new StringBuilder();
+//        for (Map.Entry<String, String> entry : ir.getManifest().entrySet()) {
+//                sb.append(entry.getValue()).append(" ").append(entry.getKey()).append("\n");
+//            }
+//        return sb.toString();
+//    }
     public void setTicketReturnManifest(IngestRequest ir, Ticket t) {
-        EntityManager em = emf.createEntityManager();
         
-        try
-        {
-            t.setReturnManifest(manifestToString(ir));
-            em.getTransaction().begin();
-            em.merge(t);
-            em.getTransaction().commit();
-        }
-        finally
-        {
-            em.close();
-        }
+        ir.getManifestFile().renameTo(new File(ir.getManifestFile().getParentFile(), RESULT_PREFIX + t.getIdentifier()));
+
+
     }
-    
+
     private boolean setTicketStatus(String ticketId, String description, int state) {
         EntityManager em = emf.createEntityManager();
 
