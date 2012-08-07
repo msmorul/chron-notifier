@@ -157,7 +157,7 @@ public class IngestRequest {
         parts[0].trim();
         parts[1].trim();
 
-        if (parts[0].isEmpty() || parts[1].isEmpty()) {
+        if (parts[0].isEmpty() || parts[1].isEmpty() || !ManifestDirectoryListener.getPathRegex().matcher(parts[1]).matches()) {
             LOG.error("Ignoring Bad Line: " + line);
             errors.add("Ignoring Bad Line: " + line);
             return false;

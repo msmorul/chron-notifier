@@ -8,6 +8,7 @@ import java.io.File;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
 import javax.servlet.annotation.WebListener;
+import java.util.regex.Pattern;
 
 /**
  * Web application lifecycle listener.
@@ -19,7 +20,13 @@ public class ManifestDirectoryListener implements ServletContextListener {
      * manifest directory setting from webapp context. used to store ingested manifests
      */
     public static final String MANIFEST_DIRECTORY = "manifestDirectory";
+    public static final String VALID_REGEX = "pathregex";
     private static File directory;
+    private static Pattern pathRegex;
+
+    public static Pattern getPathRegex() {
+        return pathRegex;
+    }
 
     public static File getDirectory() {
         return directory;
@@ -36,6 +43,13 @@ public class ManifestDirectoryListener implements ServletContextListener {
             }
         } else {
             throw new RuntimeException("No manifest directory configured in contect");
+        }
+
+
+        if (sce.getServletContext().getInitParameter(VALID_REGEX) != null) {
+            pathRegex = Pattern.compile(sce.getServletContext().getInitParameter(VALID_REGEX));
+        } else {
+            pathRegex = Pattern.compile(".*");
         }
 
     }

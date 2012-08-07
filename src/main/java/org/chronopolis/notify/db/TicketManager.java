@@ -66,9 +66,9 @@ public class TicketManager {
      * @param description message to set as ticket's status mesage
      * @return false if ticket is not open
      */
-    public boolean updateMessage(String ticketId, String description) {
+    /*public boolean updateMessage(String ticketId, String description) {
         return setTicketStatus(ticketId, description, Ticket.STATUS_OPEN);
-    }
+    }*/
 
     /**
      * 
@@ -76,9 +76,9 @@ public class TicketManager {
      * @param description message to set as ticket's status mesage
      * @return false if ticket is not open
      */
-    public boolean completeTicket(String ticketId, String description) {
+    /*public boolean completeTicket(String ticketId, String description) {
         return setTicketStatus(ticketId, description, Ticket.STATUS_FINISHED);
-    }
+    }*/
 
     /**
      * 
@@ -86,9 +86,9 @@ public class TicketManager {
      * @param description message to set as ticket's status mesage
      * @return false if ticket is not open
      */
-    public boolean errorTicket(String ticketId, String description) {
+    /*public boolean errorTicket(String ticketId, String description) {
         return setTicketStatus(ticketId, description, Ticket.STATUS_ERROR);
-    }
+    }*/
 
     /**
      * 
@@ -230,7 +230,7 @@ public class TicketManager {
 
     }
 
-    private boolean setTicketStatus(String ticketId, String description, int state) {
+    public boolean setTicketStatus(String ticketId, String description, int state) {
         EntityManager em = emf.createEntityManager();
 
 

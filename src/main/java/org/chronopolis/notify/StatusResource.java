@@ -53,7 +53,53 @@ public class StatusResource {
     }
 
     /**
-     * retrieve a manifest for a ticket
+     * retrieve the client receipt. This lists all files accepted by Chron
+     * any file NOT listed here have NOT been accepted by chronopolis
+     *  - If ticket is in process, the result of this call is undefined
+     *  - In all other cases, a receipt manifest will be uploaded
+     *  - returns 200/OK w/ manifest or empty if no manifest is attached
+     *  - NOT_FOUND on invalid ticket ID
+     * 
+     *  - todo: add md5sum manifest to header
+     * @param ticketId
+     */
+    @GET
+    @Path("{ticket}/receipt")
+    @Produces(MediaType.TEXT_PLAIN)
+    public Response retrieveReceiptManifest(@PathParam("ticket") String ticketId) {
+        NDC.push("T" + ticketId);
+        try {
+            LOG.info("Ticket Manifest, ID: " + ticketId);
+
+            Ticket ticket = tm.getTicket(ticketId);
+            ResponseBuilder rb;
+            if (ticket != null) {
+
+                TicketManager tm = new TicketManager();
+                try {
+                    return Response.ok(tm.loadReturnManifest(ticketId), "text/plain").build();
+                } catch (IOException e) {
+                    LOG.error("Error retrieving " + ticketId);
+                    throw new RuntimeException(e);
+                }
+            } else {
+                LOG.debug("Returning not-found, ticket ID unknown: " + ticketId);
+                rb = Response.status(Status.NOT_FOUND);
+                rb.type(MediaType.TEXT_PLAIN_TYPE);
+                rb.entity("No such ticket " + ticketId);
+
+            }
+
+            return rb.build();
+        } finally {
+            LOG.info("Completed ticket manifest attachment: " + ticketId);
+            NDC.pop();
+        }
+
+    }
+
+    /**
+     * retrieve a manifest for a ticket, This manifest is the original manifest
      *  - returns 200/OK w/ manifest or empty if no manifest is attached
      *  - NOT_FOUND on invalid ticket ID
      * 
@@ -246,17 +292,14 @@ public class StatusResource {
      *   - OK - ticket  updated
      *      
      * @param ticket
-     * @param isError
      * @param description
-     * @param isFinished
      * @param response 
      */
     @POST
     @Path("{ticket}")
     public Response setStatus(@PathParam("ticket") String ticket,
-            @FormParam("isError") @DefaultValue(value = "false") boolean isError,
+            @FormParam("resultCode") int resultCode,
             @FormParam("description") String description,
-            @FormParam("isFinished") @DefaultValue(value = "false") boolean isFinished,
             @Context HttpServletResponse response) {
 
         try {
@@ -270,21 +313,22 @@ public class StatusResource {
                 return Response.status(Status.BAD_REQUEST).build();
             }
             
-            if (!tm.hasReturnManifest(ticket) && (isError || isFinished))
+            if (!tm.hasReturnManifest(ticket) && (resultCode == Ticket.STATUS_OPEN))
             {
                 LOG.debug("Attempt to update ticket with no manifest" + ticket);
                 return Response.status(Status.BAD_REQUEST).entity("Attempt to update ticket with no manifest" + ticket).build();
             }
 
             NDC.push("U" + ticket);
-            LOG.info("Ticket Request ID: " + ticket + " error: " + isError + " finished: " + isFinished);
-            if (isError) {
+            LOG.info("Ticket Request ID: " + ticket + " resultCode: " + resultCode);
+            tm.setTicketStatus(ticket,description,resultCode);
+            /*if (isError) {
                 tm.errorTicket(ticket, description);
             } else if (isFinished) {
                 tm.completeTicket(ticket, description);
             } else {
                 tm.updateMessage(ticket, description);
-            }
+            }*/
             return Response.ok().build();
         } finally {
             LOG.info("Completed Ticket Request ID: " + ticket);
