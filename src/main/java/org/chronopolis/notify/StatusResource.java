@@ -302,6 +302,12 @@ public class StatusResource {
                 return Response.status(Status.BAD_REQUEST).build();
             }
 
+            if ((resultCode == 1) && !tm.hasReturnManifest(ticket)) {
+                LOG.debug("Attempt to mark ticket successful w/o manifest " + ticket);
+                return Response.status(Status.BAD_REQUEST).build();
+            }
+   
+
             NDC.push("U" + ticket);
             LOG.info("Ticket Request ID: " + ticket + " resultCode: " + resultCode);
             tm.setTicketStatus(ticket, description, resultCode);
