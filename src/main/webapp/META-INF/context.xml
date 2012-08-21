@@ -5,4 +5,5 @@
   <Parameter name="toAddr" value="toaster@umiacs.umd.edu"/>
   <Parameter name="baseURL" value="http://localhost:8084/notification-server-1.0-SNAPSHOT"/>
   <Parameter name="manifestDirectory" value="/tmp/manifests"/>
+  <Parameter name="pathregex" value="^[^&apos;]*$"/>
 </Context>

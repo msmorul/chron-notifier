@@ -185,12 +185,4 @@ public final class NotifyResource {
         }
 
     }
-
-//    private String extractMd5Header(HttpHeaders headers) {
-//
-//        if ((headers.getRequestHeader(MD5_HEADER) == null) || (headers.getRequestHeader(MD5_HEADER).size() != 1)) {
-//            return null;
-//        }
-//        return headers.getRequestHeader(MD5_HEADER).get(0);
-//    }
 }

@@ -18,6 +18,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Matcher;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.log4j.Logger;
 
@@ -47,8 +48,6 @@ public class IngestRequest {
         return manifestFile;
     }
 
-    
-    
     public String getAccount() {
         return account;
     }
@@ -108,8 +107,7 @@ public class IngestRequest {
         try {
             while ((line = br.readLine()) != null) {
                 LOG.trace("Reading input line: " + line);
-                if (loadLine(line))
-                {
+                if (validateLine(line)) {
                     // Write line to manifest file;
                     bw.write(line);
                     bw.newLine();
@@ -138,30 +136,42 @@ public class IngestRequest {
 
     }
 
-    private boolean loadLine(String line) {
+    private boolean validateLine(String line) {
         if (line.isEmpty()) {
-            LOG.error("Ignoring Empty Line");
+            LOG.info("Ignoring Empty Line");
             errors.add("Ignoring Empty Line");
             return false;
         }
 
         String[] parts = line.split("\\s+", 2);
         if (parts == null || parts.length != 2) {
-            LOG.error("Ignoring Bad Line: " + line);
+            LOG.info("Ignoring Bad Line: " + line);
             errors.add("Ignoring Bad Line: " + line);
             return false;
         }
 
-        parts[0].trim();
-        parts[1].trim();
+        
+        String digest = parts[0].trim();
+        String path = parts[1].trim();
 
-        if (parts[0].isEmpty() || parts[1].isEmpty() || !ManifestDirectoryListener.getPathRegex().matcher(parts[1]).matches()) {
-            LOG.error("Ignoring Bad Line: " + line);
-            errors.add("Ignoring Bad Line: " + line);
+        Matcher m;
+        if (digest.isEmpty()) {
+            LOG.info("Ignoring Bad Line (empty digest): " + line);
+            errors.add("Ignoring Bad Line (empty digest): " + line);
             return false;
+        } else if (path.isEmpty()) {
+            LOG.info("Ignoring Bad Line (empty path): " + line);
+            errors.add("Ignoring Bad Line (empty path): " + line);
+            return false;
+        } else if (! (m = ManifestDirectoryListener.getPathRegex().matcher(path)).matches()) {
+            LOG.info("Ignoring Bad Line (Illegal path): " + line +" "+ m);
+            errors.add("Ignoring Bad Line (Illegal path): " + line);
+            return false;
+
         }
 
-        if (seenfiles.contains(parts[1])) {
+
+        if (seenfiles.contains(path)) {
             String error = "Duplicate manifest file: " + parts[1] + " not replacing ";
 
             errors.add(error);

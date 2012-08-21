@@ -10,9 +10,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.Consumes;
-import javax.ws.rs.DefaultValue;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
@@ -32,7 +30,15 @@ import org.chronopolis.notify.db.Ticket;
 import org.chronopolis.notify.db.TicketManager;
 
 /**
- * Resource to update or retrieve the status of a current ticket
+ * Resource to update or retrieve the status of a current ticket. The following 
+ * URL paths are supported in this resources
+ * 
+ * GET  /status json
+ * PUT  /status/[ticket] text/plain
+ * GET  /status/[ticket] json
+ * POST /status/[ticket] 
+ * GET  /status/[ticket]/receipt text/plain
+ * GET  /status/[ticket]/manifest text/plain
  * 
  * @author toaster
  */
@@ -76,7 +82,6 @@ public class StatusResource {
             ResponseBuilder rb;
             if (ticket != null) {
 
-                TicketManager tm = new TicketManager();
                 try {
                     return Response.ok(tm.loadReturnManifest(ticketId), "text/plain").build();
                 } catch (IOException e) {
@@ -121,7 +126,6 @@ public class StatusResource {
             ResponseBuilder rb;
             if (ticket != null) {
 
-                TicketManager tm = new TicketManager();
                 try {
                     return Response.ok(tm.loadPutManifest(ticketId), "text/plain").build();
                 } catch (IOException e) {
@@ -278,15 +282,14 @@ public class StatusResource {
      *   - OK - ticket  updated
      *      
      * @param ticket
-     * @param description
+     * @param resultCode
      * @param response 
      */
     @POST
     @Path("{ticket}")
     public Response setStatus(@PathParam("ticket") String ticket,
             @FormParam("resultCode") int resultCode,
-            @FormParam("description") String description,
-            @Context HttpServletResponse response) {
+            @FormParam("description") String description) {
 
         try {
 
@@ -299,15 +302,10 @@ public class StatusResource {
                 return Response.status(Status.BAD_REQUEST).build();
             }
 
-//            if (!tm.hasReturnManifest(ticket) && (resultCode == Ticket.STATUS_OPEN)) {
-//                LOG.debug("Attempt to update ticket with no manifest" + ticket);
-//                return Response.status(Status.BAD_REQUEST).entity("Attempt to update ticket with no manifest" + ticket).build();
-//            }
-
             NDC.push("U" + ticket);
             LOG.info("Ticket Request ID: " + ticket + " resultCode: " + resultCode);
             tm.setTicketStatus(ticket, description, resultCode);
-            
+
             return Response.ok().build();
         } finally {
             LOG.info("Completed Ticket Request ID: " + ticket);

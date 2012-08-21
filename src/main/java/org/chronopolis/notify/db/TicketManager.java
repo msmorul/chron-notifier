@@ -51,6 +51,14 @@ public class TicketManager {
         return loadStream(ticketId, RESULT_PREFIX);
     }
 
+    /**
+     * Return manifest w/ appropriate prefix. Manifests are named prefix+ticketID
+     * 
+     * @param ticketId
+     * @param prefix
+     * @return input stream to return. Will return 0 byte inputstream if no manifest of prefix has been uploaded
+     * @throws IOException upon error opening manifest file (should not occur)
+     */
     private InputStream loadStream(String ticketId, String prefix) throws IOException {
         Ticket t = getTicket(ticketId);
         if (t == null) {
