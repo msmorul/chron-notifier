@@ -18,7 +18,8 @@ import org.apache.log4j.Logger;
 import org.chronopolis.notify.db.Ticket;
 
 /**
- * yeah, fugly
+ * TODO: Move this to a template-based system
+ * 
  * @author toaster
  */
 public class MailUtil implements ServletContextListener {
@@ -60,7 +61,6 @@ public class MailUtil implements ServletContextListener {
             }
             message.setSubject(sb.toString());
 
-            //TODO: Should manifest be converted to txt attachment rather than inline?
             message.setText(buildMsg(t, ir));
 
             Transport.send(message);
@@ -111,13 +111,6 @@ public class MailUtil implements ServletContextListener {
             sb.append("\n\nErrors: \n");
             sb.append(t.getStatusMessage());
         }
-//        if (t.getRequestType() == Ticket.REQUEST_INGEST) {
-//            sb.append("\n\n-----------------\nTransfer Manifest\n\n");
-//            
-//            for (Map.Entry<String, String> entry : ir.getManifest().entrySet()) {
-//                sb.append(entry.getValue()).append(" ").append(entry.getKey()).append("\r\n");
-//            }
-//        }
         return sb.toString();
 
     }

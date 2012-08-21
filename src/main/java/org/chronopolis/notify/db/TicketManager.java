@@ -4,6 +4,7 @@
  */
 package org.chronopolis.notify.db;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -38,11 +39,10 @@ public class TicketManager {
         emf = EntityManagerFactoryProducer.get();
     }
 
-    public boolean hasReturnManifest(String ticketId)
-    {
+    public boolean hasReturnManifest(String ticketId) {
         return new File(ManifestDirectoryListener.getDirectory(), RESULT_PREFIX + ticketId).isFile();
     }
-    
+
     public InputStream loadPutManifest(String ticketId) throws IOException {
         return loadStream(ticketId, PUT_PREFIX);
     }
@@ -56,39 +56,19 @@ public class TicketManager {
         if (t == null) {
             throw new IOException("Bad ticket " + ticketId);
         }
-        FileInputStream manifestIS = new FileInputStream(new File(ManifestDirectoryListener.getDirectory(), prefix + ticketId));
+
+        File ticketFile = new File(ManifestDirectoryListener.getDirectory(), prefix + ticketId);
+        InputStream manifestIS;
+        if (ticketFile.isFile()) {
+            LOG.trace("Opening manifest file: " + ticketFile);
+            manifestIS = new FileInputStream(ticketFile);
+        } else {
+            LOG.debug("No manifest uploaded, returning empty stream for file: " + ticketFile);
+            manifestIS = new ByteArrayInputStream(new byte[0]);
+        }
+
         return manifestIS;
     }
-
-    /**
-     * 
-     * @param ticketId ticket to be update
-     * @param description message to set as ticket's status mesage
-     * @return false if ticket is not open
-     */
-    /*public boolean updateMessage(String ticketId, String description) {
-        return setTicketStatus(ticketId, description, Ticket.STATUS_OPEN);
-    }*/
-
-    /**
-     * 
-     * @param ticketId ticket to be update
-     * @param description message to set as ticket's status mesage
-     * @return false if ticket is not open
-     */
-    /*public boolean completeTicket(String ticketId, String description) {
-        return setTicketStatus(ticketId, description, Ticket.STATUS_FINISHED);
-    }*/
-
-    /**
-     * 
-     * @param ticketId ticket to be update
-     * @param description message to set as ticket's status mesage
-     * @return false if ticket is not open
-     */
-    /*public boolean errorTicket(String ticketId, String description) {
-        return setTicketStatus(ticketId, description, Ticket.STATUS_ERROR);
-    }*/
 
     /**
      * 
@@ -224,7 +204,7 @@ public class TicketManager {
 //        return sb.toString();
 //    }
     public void setTicketReturnManifest(IngestRequest ir, Ticket t) {
-        
+
         ir.getManifestFile().renameTo(new File(ir.getManifestFile().getParentFile(), RESULT_PREFIX + t.getIdentifier()));
 
 

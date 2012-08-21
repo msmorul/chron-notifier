@@ -77,7 +77,7 @@ public final class NotifyResource {
     }
 
     /**
-     * retieve a single item from chronopolis
+     * retrieve a single item from chronopolis
      * 
      * @param accountId
      * @param spaceId

@@ -32,7 +32,8 @@ import org.chronopolis.notify.db.Ticket;
 import org.chronopolis.notify.db.TicketManager;
 
 /**
- *
+ * Resource to update or retrieve the status of a current ticket
+ * 
  * @author toaster
  */
 @Path("status")
@@ -60,7 +61,7 @@ public class StatusResource {
      *  - returns 200/OK w/ manifest or empty if no manifest is attached
      *  - NOT_FOUND on invalid ticket ID
      * 
-     *  - todo: add md5sum manifest to header
+     *  - TODO: add md5sum manifest to header
      * @param ticketId
      */
     @GET
@@ -99,11 +100,11 @@ public class StatusResource {
     }
 
     /**
-     * retrieve a manifest for a ticket, This manifest is the original manifest
+     * retrieve a manifest for a ticket, This manifest is the original manifest as supplied by a chron depositor
      *  - returns 200/OK w/ manifest or empty if no manifest is attached
      *  - NOT_FOUND on invalid ticket ID
      * 
-     *  - todo: add md5sum manifest to header
+     *  - TODO: add md5sum manifest to header
      * 
      * @param ticketId
      * @return 
@@ -143,12 +144,12 @@ public class StatusResource {
     }
 
     /**
-     * Attach a manifest to a ticket
+     * Attach a receipt manifest to a ticket
      *  - this should only be called on ticket types of Get it
      *  - for put requests, calls to this will error
      *  - on successful upload, response will be set to 200/OK
      *  - NOT_FOUND on invalid ticket ID
-     *  - BAD_REQUEST on closed or non-get ticket or on mismatched digest
+     *  - BAD_REQUEST on closed/errored ticket or on mismatched digest
      * 
      * TODO: What should be returned if we encounter formatting errors? Currently, we will still return OK
      * 
@@ -158,7 +159,7 @@ public class StatusResource {
     @PUT
     @Path("{ticket}")
     @Consumes(MediaType.TEXT_PLAIN)
-    public Response attachManifest(@PathParam("ticket") String ticketId, @Context HttpServletRequest request,
+    public Response attachReceiptManifest(@PathParam("ticket") String ticketId, @Context HttpServletRequest request,
             @HeaderParam(NotifyResource.MD5_HEADER) String digest) {
         NDC.push("T" + ticketId);
         try {
@@ -219,15 +220,12 @@ public class StatusResource {
 
     /**
      * response set to 
-     *      bad_request for non-existent tickets
      *      200/OK for open tickets return application/json 
-     *      201/CREATED for successfully finished tickets, will return manifest text/plain rather than json
-     *          - This manifest must be placed by a call to attachManifest
-     *          - For Put Content Space: the BagIt manifest of items that were ingested into Chronopolis
-     *          - For Get Content Item: the BagIt-style line entry of the requested content item
-     *          - For Get Content Space: the BagIt manifest of items that were copied out of Chronopolis
+     *      201/CREATED for successfully finished tickets, (status=1)
+     *          will return a json object w/ status=1
      *      500/INTERNAL ERROR for requests that errored out, ticket json in body
-     *      404/NOT_FOUND
+     *          status > 1 will be set
+     *      404/NOT_FOUND for non-existent tickets
      * 
      * @param ticket
      * @param response
@@ -251,21 +249,9 @@ public class StatusResource {
                         rb = Response.status(Status.OK).header("Retry-After", "120").entity(ticket);
                         break;
                     case Ticket.STATUS_FINISHED:
-                        // finished case, return 201, response body set to stored manifest
-                        //TODO: include md5 digest for manifest
-                        try {
-                            rb = Response.ok(tm.loadReturnManifest(ticketId), "text/plain");
-                        } catch (IOException e) {
-                            LOG.error("Error retrieving " + ticketId);
-                            throw new RuntimeException(e);
-                        }
-                        break;
-                    //return R
-                    case Ticket.STATUS_ERROR:
-                        rb = Response.status(Status.INTERNAL_SERVER_ERROR).entity(ticket);
+                        rb = Response.status(Status.CREATED).entity(ticket);
                         break;
                     default:
-                        LOG.error("Unknown response case: " + ticket.getStatusMessage());
                         rb = Response.status(Status.INTERNAL_SERVER_ERROR).entity(ticket);
                 }
 
@@ -312,23 +298,16 @@ public class StatusResource {
                 LOG.debug("Attempt to update closed ticket " + ticket);
                 return Response.status(Status.BAD_REQUEST).build();
             }
-            
-            if (!tm.hasReturnManifest(ticket) && (resultCode == Ticket.STATUS_OPEN))
-            {
-                LOG.debug("Attempt to update ticket with no manifest" + ticket);
-                return Response.status(Status.BAD_REQUEST).entity("Attempt to update ticket with no manifest" + ticket).build();
-            }
+
+//            if (!tm.hasReturnManifest(ticket) && (resultCode == Ticket.STATUS_OPEN)) {
+//                LOG.debug("Attempt to update ticket with no manifest" + ticket);
+//                return Response.status(Status.BAD_REQUEST).entity("Attempt to update ticket with no manifest" + ticket).build();
+//            }
 
             NDC.push("U" + ticket);
             LOG.info("Ticket Request ID: " + ticket + " resultCode: " + resultCode);
-            tm.setTicketStatus(ticket,description,resultCode);
-            /*if (isError) {
-                tm.errorTicket(ticket, description);
-            } else if (isFinished) {
-                tm.completeTicket(ticket, description);
-            } else {
-                tm.updateMessage(ticket, description);
-            }*/
+            tm.setTicketStatus(ticket, description, resultCode);
+            
             return Response.ok().build();
         } finally {
             LOG.info("Completed Ticket Request ID: " + ticket);
