@@ -74,7 +74,7 @@ public class StatusResource {
     @Path("{ticket}/receipt")
     @Produces(MediaType.TEXT_PLAIN)
     public Response retrieveReceiptManifest(@PathParam("ticket") String ticketId) {
-        NDC.push("T" + ticketId);
+        NDC.push("rtrRecpt" + ticketId);
         try {
             LOG.info("Ticket Manifest, ID: " + ticketId);
 
@@ -118,7 +118,7 @@ public class StatusResource {
     @Path("{ticket}/manifest")
     @Produces(MediaType.TEXT_PLAIN)
     public Response retrieveManifest(@PathParam("ticket") String ticketId) {
-        NDC.push("T" + ticketId);
+        NDC.push("rtrMf" + ticketId);
         try {
             LOG.info("Ticket Manifest, ID: " + ticketId);
 
@@ -165,7 +165,7 @@ public class StatusResource {
     @Consumes(MediaType.TEXT_PLAIN)
     public Response attachReceiptManifest(@PathParam("ticket") String ticketId, @Context HttpServletRequest request,
             @HeaderParam(NotifyResource.MD5_HEADER) String digest) {
-        NDC.push("T" + ticketId);
+        NDC.push("putRcpt" + ticketId);
         try {
             LOG.info("Ticket Request ID: " + ticketId);
 
@@ -189,7 +189,7 @@ public class StatusResource {
 
             if (ticket != null) {
 
-                if (!(ticket.getStatus() != Ticket.STATUS_OPEN)) {
+                if (ticket.getStatus() != Ticket.STATUS_OPEN) {
                     LOG.debug("Attempt to attach manifest to closed ticket " + ticketId);
                     rb = Response.status(Status.BAD_REQUEST);
                     rb.type(MediaType.TEXT_PLAIN_TYPE);
@@ -241,7 +241,7 @@ public class StatusResource {
     public Response getStatus(@PathParam("ticket") String ticketId) {
         try {
 
-            NDC.push("T" + ticketId);
+            NDC.push("getStatus" + ticketId);
             LOG.info("Ticket Request ID: " + ticketId);
 
             Ticket ticket = tm.getTicket(ticketId);
@@ -292,6 +292,8 @@ public class StatusResource {
             @FormParam("description") String description) {
 
         try {
+            NDC.push("setStatus" + ticket);
+            LOG.info("Ticket Request ID: " + ticket + " resultCode: " + resultCode);
 
             Ticket t = tm.getTicket(ticket);
             if (t == null) {
@@ -308,8 +310,6 @@ public class StatusResource {
             }
    
 
-            NDC.push("U" + ticket);
-            LOG.info("Ticket Request ID: " + ticket + " resultCode: " + resultCode);
             tm.setTicketStatus(ticket, description, resultCode);
 
             return Response.ok().build();
