@@ -16,6 +16,10 @@
         <servlet-name>ServletAdaptor</servlet-name>
         <servlet-class>com.sun.jersey.spi.container.servlet.ServletContainer</servlet-class>
         <load-on-startup>1</load-on-startup>
+        <init-param>
+            <param-name>com.sun.jersey.spi.container.ResourceFilters</param-name>
+            <param-value>com.sun.jersey.api.container.filter.RolesAllowedResourceFilterFactory</param-value>
+        </init-param>
     </servlet>
     <servlet>
         <servlet-name>IndexServlet</servlet-name>
@@ -37,7 +41,6 @@
             <param-value>UTF-8</param-value>
         </init-param>
     </filter>
- 
     <filter-mapping>
         <filter-name>CharsetFilter</filter-name>
         <url-pattern>/*</url-pattern>
@@ -47,4 +50,27 @@
             30
         </session-timeout>
     </session-config>
+    <security-constraint>
+        <display-name>Constraint1</display-name>
+        <web-resource-collection>
+            <web-resource-name>All</web-resource-name>
+            <description/>
+            <url-pattern>/*</url-pattern>
+        </web-resource-collection>
+        <auth-constraint>
+            <role-name>*</role-name>
+        </auth-constraint>
+    </security-constraint>
+    <login-config>
+        <auth-method>BASIC</auth-method>
+        <realm-name>Notification Service</realm-name>
+    </login-config>
+    <security-role>
+        <description>Role who is able to update the status of tickets</description>
+        <role-name>Processor</role-name>
+    </security-role>
+    <security-role>
+        <description>Role who can create new tickets or check on the status of their own tickets</description>
+        <role-name>Submittor</role-name>
+    </security-role>
 </web-app>

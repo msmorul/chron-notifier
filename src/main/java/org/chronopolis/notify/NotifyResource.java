@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import javax.annotation.security.RolesAllowed;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.PathParam;
@@ -17,6 +18,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -38,6 +40,8 @@ public final class NotifyResource {
     public static final String MD5_HEADER = "Content-MD5";
     private TicketManager tm = new TicketManager();
     private static final Logger LOG = Logger.getLogger(NotifyResource.class);
+    @Context
+    private HttpServletRequest request;
 
     public NotifyResource() {
     }
@@ -53,6 +57,7 @@ public final class NotifyResource {
     @GET
     @Path("{accountId}/{spaceId}")
     @Produces("application/json")
+    @RolesAllowed({"Submittor"})
     public Response requestBag(@PathParam("accountId") String accountId,
             @PathParam("spaceId") String spaceId) {
         try {
@@ -61,7 +66,7 @@ public final class NotifyResource {
             LOG.info("Request to retrieve item. ID: " + spaceId + "  Account: " + accountId);
 
 
-            Ticket ticket = tm.createTicket(accountId, spaceId, null);
+            Ticket ticket = tm.createTicket(accountId, spaceId, null, request.getUserPrincipal());
             MailUtil.sendMessage(ticket, null);
 
             ResponseBuilder rb = Response.status(Status.ACCEPTED);
@@ -88,6 +93,7 @@ public final class NotifyResource {
     @GET
     @Path("{accountId}/{spaceId}/{contentId}")
     @Produces("application/json")
+    @RolesAllowed({"Submittor"})
     public Response requestBag(@PathParam("accountId") String accountId,
             @PathParam("spaceId") String spaceId,
             @PathParam("contentId") String contentId) {
@@ -97,7 +103,7 @@ public final class NotifyResource {
             NDC.push("I" + accountId);
             LOG.info("Request to retrieve item. ID: " + spaceId + "/" + contentId + "  Account: " + accountId);
 
-            Ticket ticket = tm.createTicket(accountId, spaceId, contentId);
+            Ticket ticket = tm.createTicket(accountId, spaceId, contentId, request.getUserPrincipal());
             MailUtil.sendMessage(ticket, null);
 
             ResponseBuilder rb = Response.status(Status.ACCEPTED);
@@ -127,10 +133,10 @@ public final class NotifyResource {
     @Path("{accountId}/{spaceId}")
     @Consumes("text/plain")
     @Produces("application/json")
+    @RolesAllowed({"Submittor"})
     public Response putManifest(@PathParam("accountId") String accountId,
             @PathParam("spaceId") String spaceId, @Context HttpHeaders headers,
-            @HeaderParam(MD5_HEADER) String digest,
-            @Context HttpServletRequest request) {
+            @HeaderParam(MD5_HEADER) String digest) {
         try {
 
             NDC.push("R" + accountId);

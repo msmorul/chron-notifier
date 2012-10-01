@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.security.Principal;
 import java.util.List;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
@@ -35,6 +36,10 @@ public class TicketManager {
     private static EntityManagerFactory emf;
     private static final Logger LOG = Logger.getLogger(TicketManager.class);
 
+    public boolean checkTicket(Ticket t, Principal p) {
+        return t.getSubmittor().equals(p.getName());
+    }
+    
     public TicketManager() {
         emf = EntityManagerFactoryProducer.get();
     }
@@ -120,7 +125,7 @@ public class TicketManager {
     /**
      * 
      */
-    public Ticket createTicket(String account, String space, String item) {
+    public Ticket createTicket(String account, String space, String item, Principal p) {
         EntityManager em = emf.createEntityManager();
         try {
 
@@ -130,6 +135,7 @@ public class TicketManager {
             ticket.setAccountId(account);
             ticket.setSpaceId(space);
             ticket.setStatus(Ticket.STATUS_OPEN);
+            ticket.setSubmittor(p.getName());
 
             if (item == null || item.isEmpty()) {
                 ticket.setRequestType(Ticket.REQUEST_FULL_RESTORE);

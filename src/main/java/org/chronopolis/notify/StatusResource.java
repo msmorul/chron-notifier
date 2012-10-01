@@ -9,6 +9,7 @@ import java.io.InputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
+import javax.annotation.security.RolesAllowed;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.FormParam;
@@ -19,6 +20,7 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -47,7 +49,17 @@ public class StatusResource {
 
     private static final Logger LOG = Logger.getLogger(StatusResource.class);
     private TicketManager tm = new TicketManager();
-
+    @Context
+    private HttpServletRequest request;     
+    
+    private void checkTicket(Ticket t) {
+        if (request.isUserInRole("Processor") || tm.checkTicket(t,request.getUserPrincipal()))
+                return;
+        else {
+            throw new WebApplicationException(Status.FORBIDDEN);
+        }
+    }
+    
     /**
      * Return list of all ticket.
      * 
@@ -55,6 +67,7 @@ public class StatusResource {
      */
     @GET
     @Produces("application/json")
+    @RolesAllowed({"Processor"})
     public List<Ticket> listTickets() {
         return tm.listAll();
     }
@@ -73,6 +86,7 @@ public class StatusResource {
     @GET
     @Path("{ticket}/receipt")
     @Produces(MediaType.TEXT_PLAIN)
+    @RolesAllowed({"Processor","Submittor"})
     public Response retrieveReceiptManifest(@PathParam("ticket") String ticketId) {
         NDC.push("rtrRecpt" + ticketId);
         try {
@@ -81,7 +95,8 @@ public class StatusResource {
             Ticket ticket = tm.getTicket(ticketId);
             ResponseBuilder rb;
             if (ticket != null) {
-
+                checkTicket(ticket);
+                
                 try {
                     return Response.ok(tm.loadReturnManifest(ticketId), "text/plain").build();
                 } catch (IOException e) {
@@ -117,6 +132,7 @@ public class StatusResource {
     @GET
     @Path("{ticket}/manifest")
     @Produces(MediaType.TEXT_PLAIN)
+    @RolesAllowed({"Processor","Submittor"})
     public Response retrieveManifest(@PathParam("ticket") String ticketId) {
         NDC.push("rtrMf" + ticketId);
         try {
@@ -125,7 +141,7 @@ public class StatusResource {
             Ticket ticket = tm.getTicket(ticketId);
             ResponseBuilder rb;
             if (ticket != null) {
-
+                checkTicket(ticket);
                 try {
                     return Response.ok(tm.loadPutManifest(ticketId), "text/plain").build();
                 } catch (IOException e) {
@@ -163,6 +179,7 @@ public class StatusResource {
     @PUT
     @Path("{ticket}")
     @Consumes(MediaType.TEXT_PLAIN)
+    @RolesAllowed({"Processor"})
     public Response attachReceiptManifest(@PathParam("ticket") String ticketId, @Context HttpServletRequest request,
             @HeaderParam(NotifyResource.MD5_HEADER) String digest) {
         NDC.push("putRcpt" + ticketId);
@@ -238,6 +255,7 @@ public class StatusResource {
     @GET
     @Path("{ticket}")
     @Produces("application/json")
+    @RolesAllowed({"Processor","Submittor"})
     public Response getStatus(@PathParam("ticket") String ticketId) {
         try {
 
@@ -247,6 +265,7 @@ public class StatusResource {
             Ticket ticket = tm.getTicket(ticketId);
             ResponseBuilder rb;
             if (ticket != null) {
+                checkTicket(ticket);
 
                 switch (ticket.getStatus()) {
                     case Ticket.STATUS_OPEN:
@@ -287,6 +306,7 @@ public class StatusResource {
      */
     @POST
     @Path("{ticket}")
+    @RolesAllowed({"Processor"})
     public Response setStatus(@PathParam("ticket") String ticket,
             @FormParam("resultCode") int resultCode,
             @FormParam("description") String description) {
