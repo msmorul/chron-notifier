@@ -18,7 +18,6 @@ import javax.ws.rs.Path;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
 import javax.ws.rs.Produces;
-import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -48,12 +47,13 @@ public final class NotifyResource {
 
     /**
      * Request retrieval of a complete Bag, response code is set to ACCEPTED
-     * 
+     *
      * @param accountId
      * @param spaceId
      * @param request
      * @return ticket to retrieve transfer status
-     **/
+     *
+     */
     @GET
     @Path("{accountId}/{spaceId}")
     @Produces("application/json")
@@ -83,7 +83,7 @@ public final class NotifyResource {
 
     /**
      * retrieve a single item from chronopolis
-     * 
+     *
      * @param accountId
      * @param spaceId
      * @param contentId
@@ -120,11 +120,10 @@ public final class NotifyResource {
     }
 
     /**
-     * Notify Chronopolis a manifest is available for transfer
-     *  response status set as follows:
-     *      SC_BAD_REQUEST malformed manifest or mismatched md5 sum
-     *      SC_ACCEPTED got, parsed, and e-mailed response
-     * 
+     * Notify Chronopolis a manifest is available for transfer response status
+     * set as follows: SC_BAD_REQUEST malformed manifest or mismatched md5 sum
+     * SC_ACCEPTED got, parsed, and e-mailed response
+     *
      * @param accountId
      * @param spaceId
      * @return ticket id to be used for status updates

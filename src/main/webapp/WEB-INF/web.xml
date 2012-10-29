@@ -51,6 +51,18 @@
         </session-timeout>
     </session-config>
     <security-constraint>
+        <display-name>Index</display-name>
+        <web-resource-collection>
+            <web-resource-name>index</web-resource-name>
+            <description/>
+            <url-pattern>/index.jsp</url-pattern>
+        </web-resource-collection>
+        <auth-constraint>
+            <description/>
+            <role-name>Processor</role-name>
+        </auth-constraint>
+    </security-constraint>
+    <security-constraint>
         <display-name>Constraint1</display-name>
         <web-resource-collection>
             <web-resource-name>All</web-resource-name>
@@ -61,6 +73,7 @@
             <role-name>*</role-name>
         </auth-constraint>
     </security-constraint>
+    
     <login-config>
         <auth-method>BASIC</auth-method>
         <realm-name>Notification Service</realm-name>
